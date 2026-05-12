@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OnTop Admin - 酒单管理</title>
+<style>
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/static/PressStart2P.woff2) format('woff2');
+}
+:root {
+  --bg: #0d0d1a;
+  --surface: #1a1a2e;
+  --neon-pink: #ff6b9d;
+  --neon-cyan: #00e5ff;
+  --neon-yellow: #ffd740;
+  --neon-green: #69f0ae;
+  --neon-purple: #b388ff;
+  --text: #e0e0e0;
+  --text-dim: #888;
+  --danger: #ff5252;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', 'Noto Sans SC', monospace;
+  min-height: 100vh;
+  -webkit-font-smoothing: none;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: var(--surface);
+  border-bottom: 3px solid var(--neon-purple);
+  padding: 16px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(179,136,255,0.2);
+}
+.header h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 14px;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px rgba(0,229,255,0.3);
+}
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  font-size: 9px; padding: 8px 16px; border: none; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 1px; color: #fff;
+  transition: all 0.1s ease;
+}
+.btn:active { transform: translate(1px,1px); }
+.btn-pri { background: var(--neon-cyan); color: #111; box-shadow: inset -3px -3px 0 #099, inset 3px 3px 0 #9ff; }
+.btn-pri:hover { background: #4df0ff; }
+.btn-danger { background: var(--danger); box-shadow: inset -3px -3px 0 #a22, inset 3px 3px 0 #f88; }
+.btn-danger:hover { background: #ff6e6e; }
+.btn-sm { font-size: 8px; padding: 4px 10px; }
+.btn-ghost { background: transparent; border: 2px solid #444; color: var(--text-dim); }
+.btn-ghost:hover { border-color: var(--neon-purple); color: var(--neon-purple); }
+.btn-green { background: var(--neon-green); color: #111; box-shadow: inset -3px -3px 0 #388, inset 3px 3px 0 #afa; }
+
+/* ===== LAYOUT ===== */
+.main { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+/* ===== FILTER ===== */
+.filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-btn {
+  font-family: 'Press Start 2P', monospace; font-size: 8px;
+  padding: 6px 14px; border: 2px solid #444; background: transparent;
+  color: var(--text-dim); cursor: pointer; letter-spacing: 1px;
+}
+.filter-btn.active { border-color: var(--neon-cyan); color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0,229,255,0.2); }
+.filter-btn:hover { border-color: var(--neon-purple); }
+
+.count { font-size: 10px; color: var(--text-dim); margin-bottom: 12px; }
+
+/* ===== TABLE ===== */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #222; }
+th {
+  font-family: 'Press Start 2P', monospace; font-size: 8px;
+  color: var(--neon-purple); letter-spacing: 1px; white-space: nowrap;
+}
+tr:hover { background: rgba(255,255,255,0.03); }
+td.name-cell { color: var(--neon-pink); white-space: nowrap; }
+td.en-cell { color: var(--text-dim); font-size: 10px; }
+td .thumb { width: 36px; height: 36px; object-fit: cover; border: 1px solid #333; display: block; }
+td .no-img { width: 36px; height: 36px; background: #1a1a1a; border: 1px solid #333; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.75); justify-content: center; align-items: flex-start;
+  padding-top: 40px; overflow-y: auto;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 3px solid var(--neon-purple);
+  box-shadow: 0 0 40px rgba(179,136,255,0.3);
+  width: 620px; max-width: 95vw; padding: 28px;
+  position: relative; margin-bottom: 40px;
+}
+.modal h2 {
+  font-family: 'Press Start 2P', monospace; font-size: 12px;
+  color: var(--neon-cyan); margin-bottom: 24px;
+  text-shadow: 0 0 8px rgba(0,229,255,0.3);
+}
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; color: var(--text-dim);
+  font-size: 20px; cursor: pointer; line-height: 1;
+}
+.modal-close:hover { color: var(--neon-pink); }
+
+/* ===== FORM ===== */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid .full { grid-column: 1 / -1; }
+label {
+  font-family: 'Press Start 2P', monospace; font-size: 7px;
+  color: var(--text-dim); display: block; margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+input, select, textarea {
+  width: 100%; padding: 8px 10px;
+  background: #111; color: var(--text);
+  border: 2px solid #333; font-family: 'Courier New', 'Noto Sans SC', monospace;
+  font-size: 12px; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--neon-cyan); }
+textarea { resize: vertical; min-height: 50px; }
+
+/* Image upload area */
+.img-upload {
+  border: 2px dashed #444; padding: 16px; text-align: center;
+  background: #111; cursor: pointer;
+}
+.img-upload:hover { border-color: var(--neon-purple); }
+.img-upload .preview { max-width: 160px; max-height: 120px; margin-bottom: 8px; display: none; }
+.img-upload .hint { font-size: 9px; color: var(--text-dim); }
+
+/* Form buttons */
+.form-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; font-size: 11px; color: #111;
+  background: var(--neon-green); padding: 10px 24px;
+  border: 3px solid #388;
+  box-shadow: 0 0 20px rgba(105,240,174,0.5);
+  animation: toastIn 0.3s ease-out, toastOut 0.3s 1.8s ease-out forwards;
+  pointer-events: none; font-family: 'Press Start 2P', monospace;
+}
+.toast.error { background: var(--danger); border-color: #a22; color: #fff; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .header { padding: 12px; }
+  .header h1 { font-size: 11px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .modal { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🍸 ONTOP ADMIN</h1>
+  <div class="header-actions">
+    <button class="btn btn-pri btn-sm" onclick="openCreate()">+ 新增酒款</button>
+    <button class="btn btn-ghost btn-sm" onclick="reloadData()">↻ 重新加载</button>
+    <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none;">👁 前端预览</a>
+  </div>
+</div>
+
+<div class="main">
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all')">全部</button>
+    <button class="filter-btn" onclick="setFilter('特调')">特调</button>
+    <button class="filter-btn" onclick="setFilter('经典')">经典</button>
+    <button class="filter-btn" onclick="setFilter('纯饮')">纯饮</button>
+  </div>
+  <div class="count" id="count"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>图片</th>
+          <th>名称</th>
+          <th>英文</th>
+          <th>分类</th>
+          <th>价格</th>
+          <th>度数</th>
+          <th>材料</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <h2 id="modalTitle">编辑酒款</h2>
+    <form id="drinkForm" onsubmit="saveDrink(event)">
+      <input type="hidden" id="fId">
+      <div class="form-grid">
+        <div>
+          <label>中文名 *</label>
+          <input type="text" id="fName" required>
+        </div>
+        <div>
+          <label>英文名</label>
+          <input type="text" id="fEn">
+        </div>
+        <div>
+          <label>分类</label>
+          <select id="fCat" onchange="onCatChange()">
+            <option value="特调">特调</option>
+            <option value="经典">经典</option>
+            <option value="纯饮">纯饮</option>
+          </select>
+        </div>
+        <div>
+          <label>基酒</label>
+          <select id="fSpirit">
+            <option value="">—</option>
+            <option value="gin">Gin 金酒</option>
+            <option value="whisky">Whisky 威士忌</option>
+            <option value="vodka">Vodka 伏特加</option>
+            <option value="rum">Rum 朗姆</option>
+            <option value="brandy">Brandy 白兰地</option>
+            <option value="tequila">Tequila 龙舌兰</option>
+            <option value="other">Other 其他</option>
+          </select>
+        </div>
+        <div>
+          <label>价格</label>
+          <input type="text" id="fPrice" placeholder="¥96">
+        </div>
+        <div>
+          <label>酒精度</label>
+          <input type="text" id="fAbv" placeholder="12%">
+        </div>
+        <div class="full">
+          <label>酒单材料描述</label>
+          <textarea id="fDesc" rows="2"></textarea>
+        </div>
+        <div class="full" id="fgFlavor">
+          <label>风味描述</label>
+          <input type="text" id="fFlavor">
+        </div>
+        <div id="fgGlass">
+          <label>杯具</label>
+          <input type="text" id="fGlass">
+        </div>
+        <div id="fgMethod">
+          <label>制作方法</label>
+          <input type="text" id="fMethod">
+        </div>
+        <div id="fgGlassType">
+          <label>杯型（像素风）</label>
+          <select id="fGlassType">
+            <option value="">—</option>
+            <option value="martini">Martini</option>
+            <option value="highball">Highball</option>
+            <option value="rocks">Rocks</option>
+            <option value="coupe">Coupe</option>
+            <option value="margarita">Margarita</option>
+            <option value="hurricane">Hurricane</option>
+            <option value="brandySnifter">Brandy Snifter</option>
+          </select>
+        </div>
+        <div id="fgColor">
+          <label>液体颜色</label>
+          <input type="color" id="fColor" style="height:38px;padding:2px;">
+        </div>
+        <div id="fgNote">
+          <label>备注</label>
+          <input type="text" id="fNote">
+        </div>
+        <div class="full">
+          <label>图片</label>
+          <div class="img-upload" onclick="document.getElementById('fileInput').click()">
+            <img class="preview" id="imgPreview" src="" alt="Preview">
+            <div class="hint" id="imgHint">点击上传图片 (JPG/PNG/WebP)</div>
+            <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewImage(event)">
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-danger btn-sm" id="btnDelete" style="display:none;" onclick="deleteDrink()">🗑 删除</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">取消</button>
+        <button type="submit" class="btn btn-pri btn-sm">💾 保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let allDrinks = [];
+let currentFilter = 'all';
+let editingId = null;
+let imageFile = null;
+
+// ===== LOAD =====
+async function loadAll() {
+  const res = await fetch('/api/cocktails');
+  allDrinks = await res.json();
+  renderTable();
+}
+
+// ===== RENDER TABLE =====
+function renderTable() {
+  const filtered = currentFilter === 'all' ? allDrinks : allDrinks.filter(d => d.cat === currentFilter);
+  document.getElementById('count').textContent = `共 ${filtered.length} 款`;
+  document.getElementById('tbody').innerHTML = filtered.map(d => `
+    <tr>
+      <td>
+        ${d.hasImg && d.img
+          ? `<img class="thumb" src="/static/${d.img}" alt="" onerror="this.onerror=null;this.src='';">`
+          : '<div class="no-img"></div>'}
+      </td>
+      <td class="name-cell">${d.name}</td>
+      <td class="en-cell">${d.en || '—'}</td>
+      <td>${d.cat}</td>
+      <td>${d.price || '—'}</td>
+      <td>${d.abv || '—'}</td>
+      <td style="font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.desc || '—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openEdit('${d.id}')">✎ 编辑</button></td>
+    </tr>
+  `).join('');
+}
+
+// ===== FILTER =====
+function setFilter(cat) {
+  currentFilter = cat;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-btn').forEach(b => { if (b.textContent === (cat === 'all' ? '全部' : cat)) b.classList.add('active'); });
+  renderTable();
+}
+
+// ===== MODAL =====
+function openModal(title) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  editingId = null; imageFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgHint').style.display = '';
+}
+
+// ===== CAT CHANGE =====
+function onCatChange() {
+  const cat = document.getElementById('fCat').value;
+  const isSpecial = cat === '特调';
+  const isPure = cat === '纯饮';
+  document.getElementById('fgFlavor').style.display = isSpecial ? '' : 'none';
+  document.getElementById('fgGlass').style.display = isSpecial ? '' : 'none';
+  document.getElementById('fgMethod').style.display = isSpecial ? '' : 'none';
+  document.getElementById('fgGlassType').style.display = isPure ? 'none' : '';
+  document.getElementById('fgColor').style.display = isPure ? 'none' : '';
+  document.getElementById('fgNote').style.display = isPure ? '' : 'none';
+}
+
+// ===== EDIT =====
+function openEdit(id) {
+  const d = allDrinks.find(x => x.id === id);
+  if (!d) return;
+  editingId = id;
+  openModal('编辑: ' + d.name);
+  document.getElementById('btnDelete').style.display = '';
+
+  document.getElementById('fId').value = d.id;
+  document.getElementById('fName').value = d.name || '';
+  document.getElementById('fEn').value = d.en || '';
+  document.getElementById('fCat').value = d.cat || '特调';
+  document.getElementById('fSpirit').value = d.spirit || '';
+  document.getElementById('fPrice').value = d.price || '';
+  document.getElementById('fAbv').value = d.abv || '';
+  document.getElementById('fDesc').value = d.desc || '';
+  document.getElementById('fFlavor').value = d.flavor || '';
+  document.getElementById('fGlass').value = d.glass || '';
+  document.getElementById('fMethod').value = d.method || '';
+  document.getElementById('fGlassType').value = d.glassType || '';
+  document.getElementById('fColor').value = d.color || '#c8e6c9';
+  document.getElementById('fNote').value = d.note || '';
+
+  onCatChange();
+
+  // Show existing image
+  if (d.hasImg && d.img) {
+    document.getElementById('imgPreview').src = '/static/' + d.img;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('imgHint').textContent = '点击更换图片';
+  }
+}
+
+// ===== CREATE =====
+function openCreate() {
+  editingId = null; imageFile = null;
+  openModal('新增酒款');
+  document.getElementById('btnDelete').style.display = 'none';
+
+  document.getElementById('fId').value = '';
+  document.getElementById('fName').value = '';
+  document.getElementById('fEn').value = '';
+  document.getElementById('fCat').value = '特调';
+  document.getElementById('fSpirit').value = '';
+  document.getElementById('fPrice').value = '¥96';
+  document.getElementById('fAbv').value = '';
+  document.getElementById('fDesc').value = '';
+  document.getElementById('fFlavor').value = '';
+  document.getElementById('fGlass').value = '';
+  document.getElementById('fMethod').value = '';
+  document.getElementById('fGlassType').value = '';
+  document.getElementById('fColor').value = '#c8e6c9';
+  document.getElementById('fNote').value = '';
+
+  document.getElementById('imgPreview').style.display = 'none';
+  document.getElementById('imgHint').style.display = '';
+  onCatChange();
+}
+
+// ===== SAVE =====
+async function saveDrink(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('fName').value.trim(),
+  };
+  if (!data.name) { toast('请输入酒款名称', 'error'); return; }
+
+  data.en = document.getElementById('fEn').value.trim();
+  data.cat = document.getElementById('fCat').value;
+  data.spirit = document.getElementById('fSpirit').value;
+  data.price = document.getElementById('fPrice').value.trim();
+  data.abv = document.getElementById('fAbv').value.trim();
+  data.desc = document.getElementById('fDesc').value.trim();
+  data.flavor = document.getElementById('fFlavor').value.trim();
+  data.glass = document.getElementById('fGlass').value.trim();
+  data.method = document.getElementById('fMethod').value.trim();
+  data.glassType = document.getElementById('fGlassType').value;
+  data.color = document.getElementById('fColor').value;
+  data.note = document.getElementById('fNote').value.trim();
+
+  let result;
+  if (editingId) {
+    data.id = editingId;
+    const res = await fetch('/api/cocktails/' + editingId, {
+      method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+    });
+    result = await res.json();
+  } else {
+    const res = await fetch('/api/cocktails', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
+    });
+    result = await res.json();
+    editingId = result.id;
+  }
+
+  // Upload image if selected
+  if (imageFile && editingId) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
+    await fetch('/api/upload/' + editingId, { method: 'POST', body: formData });
+    imageFile = null;
+  }
+
+  toast('已保存: ' + result.name);
+  closeModal();
+  loadAll();
+}
+
+// ===== DELETE =====
+async function deleteDrink() {
+  if (!editingId) return;
+  if (!confirm('确认删除这款酒？此操作不可撤销。')) return;
+  await fetch('/api/cocktails/' + editingId, { method: 'DELETE' });
+  toast('已删除');
+  closeModal();
+  loadAll();
+}
+
+// ===== IMAGE PREVIEW =====
+function previewImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  imageFile = file;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    document.getElementById('imgPreview').src = ev.target.result;
+    document.getElementById('imgPreview').style.display = 'block';
+    document.getElementById('imgHint').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== RELOAD =====
+async function reloadData() {
+  const res = await fetch('/api/cocktails');
+  allDrinks = await res.json();
+  renderTable();
+  toast('数据已刷新 (' + allDrinks.length + ' 款)');
+}
+
+// ===== TOAST =====
+function toast(msg, type) {
+  const t = document.createElement('div');
+  t.className = 'toast' + (type === 'error' ? ' error' : '');
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+// ===== INIT =====
+loadAll();
+</script>
+</body>
+</html>

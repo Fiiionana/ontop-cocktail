@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>今天喝什么？| OnTop</title>
+<style>
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  src: url(/static/PressStart2P.woff2) format('woff2');
+}
+:root {
+  --bg: #0a0a1a;
+  --surface: #1a1a2e;
+  --neon-pink: #ff6b9d;
+  --neon-cyan: #00e5ff;
+  --neon-yellow: #ffd740;
+  --neon-green: #69f0ae;
+  --neon-purple: #b388ff;
+  --text: #e0e0e0;
+  --text-dim: #888;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Press Start 2P', 'Courier New', monospace;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Vaporwave Sun */
+.vw-sun {
+  position: fixed; top: -120px; left: 50%; transform: translateX(-50%);
+  width: 500px; height: 240px;
+  background: linear-gradient(180deg, #ff6b9d 0%, #ff8a65 30%, #ffd740 60%, #0a0a1a 100%);
+  border-radius: 0 0 250px 250px;
+  pointer-events: none; z-index: 0;
+  opacity: 0.4;
+  animation: sunPulse 4s ease-in-out infinite;
+}
+@keyframes sunPulse {
+  0%,100% { opacity: 0.35; filter: blur(20px); }
+  50% { opacity: 0.5; filter: blur(25px); }
+}
+
+/* Perspective Grid */
+.vw-grid {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(179,136,255,0.04) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(179,136,255,0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform: perspective(400px) rotateX(55deg) scaleY(2.4);
+  transform-origin: top center;
+  mask-image: linear-gradient(180deg, black 0%, black 35%, transparent 100%);
+}
+
+/* Stars */
+.stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.star { position: absolute; background: #fff; border-radius: 0; animation: twinkle var(--d) ease-in-out infinite; animation-delay: var(--dl); }
+@keyframes twinkle { 0%,100%{opacity:0.1} 50%{opacity:0.9} }
+
+/* Scanlines */
+body::after {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+}
+
+/* Container */
+.container {
+  position: relative; z-index: 1;
+  max-width: 600px; margin: 0 auto;
+  padding: 20px 16px;
+  display: flex; flex-direction: column; align-items: center;
+  min-height: 100dvh; justify-content: center;
+}
+
+/* Pixel box */
+.pixel-box {
+  background: var(--surface);
+  border: 4px solid #333;
+  box-shadow: inset 0 0 0 4px #111, 0 0 0 4px var(--neon-purple), 0 0 30px rgba(179,136,255,0.25);
+  padding: 28px 20px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  image-rendering: pixelated;
+}
+
+/* Corner accents */
+.px-corner { position: absolute; width: 10px; height: 10px; background: var(--neon-cyan); box-shadow: 0 0 8px var(--neon-cyan); }
+.px-tl { top:-5px; left:-5px; } .px-tr { top:-5px; right:-5px; }
+.px-bl { bottom:-5px; left:-5px; } .px-br { bottom:-5px; right:-5px; }
+
+/* Title with glitch */
+.title-wrap { margin-bottom: 36px; text-align: center; }
+.title {
+  font-size: clamp(14px, 4.5vw, 26px);
+  color: var(--neon-cyan);
+  text-shadow: 0 0 10px var(--neon-cyan), 0 0 40px rgba(0,229,255,0.5), 3px 3px 0 #003044;
+  margin-bottom: 6px;
+  line-height: 1.8;
+  letter-spacing: 3px;
+  position: relative;
+  animation: titleGlow 2s ease-in-out infinite;
+}
+@keyframes titleGlow {
+  0%,100% { text-shadow: 0 0 10px var(--neon-cyan), 0 0 40px rgba(0,229,255,0.5), 3px 3px 0 #003044; }
+  50% { text-shadow: 0 0 22px var(--neon-cyan), 0 0 65px rgba(0,229,255,0.7), 3px 3px 0 #003044; }
+}
+/* Glitch pseudos */
+.title::before,
+.title::after {
+  content: attr(data-text);
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  opacity: 0;
+}
+.title::before {
+  color: #ff6b9d;
+  animation: glitch1 3s infinite;
+  text-shadow: 2px 0 #ff6b9d;
+}
+.title::after {
+  color: #00e5ff;
+  animation: glitch2 3s infinite;
+  text-shadow: -2px 0 #00e5ff;
+}
+@keyframes glitch1 {
+  0%,95%,100% { opacity: 0; }
+  96% { opacity: 0.6; transform: translate(-3px, 1px); }
+  97% { opacity: 0; }
+}
+@keyframes glitch2 {
+  0%,95%,100% { opacity: 0; }
+  96.5% { opacity: 0.6; transform: translate(3px, -1px); }
+  97.5% { opacity: 0; }
+}
+
+.subtitle {
+  font-size: 10px; color: var(--text-dim); letter-spacing: 3px;
+}
+
+/* Drink card */
+.drink-card {
+  background: var(--surface);
+  padding: 20px;
+  text-align: center;
+  animation: cardPop 0.35s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes cardPop {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.drink-card.rolling { animation: cardShake 0.08s ease-in-out infinite; }
+@keyframes cardShake {
+  0%,100% { transform: translate(0,0) }
+  25% { transform: translate(-3px,2px) }
+  50% { transform: translate(3px,-1px) }
+  75% { transform: translate(-2px,-2px) }
+}
+
+/* Image area */
+.img-wrap {
+  width: 200px; height: 200px;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.img-wrap img {
+  max-width: 100%; max-height: 100%;
+  border: 3px solid #555;
+  image-rendering: auto;
+}
+
+.drink-name {
+  font-size: clamp(10px, 3vw, 15px);
+  color: var(--neon-pink);
+  margin-bottom: 4px;
+  text-shadow: 0 0 8px rgba(255,107,157,0.5);
+  line-height: 1.8;
+}
+.drink-en {
+  font-size: 10px; color: var(--text-dim); margin-bottom: 14px; letter-spacing: 1px;
+}
+.drink-meta {
+  font-size: 10px; color: var(--text-dim); line-height: 2.5;
+}
+.drink-meta .tag {
+  display: inline-block;
+  background: #222; padding: 3px 10px; margin: 2px;
+  border: 2px solid #444; color: var(--neon-yellow);
+}
+.drink-flavor {
+  font-size: 11px; color: var(--neon-green); margin-top: 14px;
+  line-height: 2; text-shadow: 0 0 5px rgba(105,240,174,0.3);
+}
+.drink-desc {
+  font-size: 9px; color: #999; margin-top: 8px; line-height: 2;
+}
+
+/* Category badge */
+.cat-badge {
+  display: inline-block; font-size: 9px; padding: 3px 10px; margin-bottom: 10px;
+  border: 2px solid; letter-spacing: 2px;
+}
+.cat-special { color: var(--neon-pink); border-color: var(--neon-pink); }
+.cat-classic { color: var(--neon-cyan); border-color: var(--neon-cyan); }
+
+/* Rolling display */
+.rolling-name {
+  font-size: clamp(10px, 3vw, 15px);
+  color: var(--neon-yellow);
+  line-height: 2; min-height: 3em;
+  display: flex; align-items: center; justify-content: center;
+  text-shadow: 0 0 10px rgba(255,215,64,0.5);
+}
+
+/* Buttons */
+.btn {
+  font-family: inherit; font-size: clamp(8px, 2.2vw, 11px);
+  padding: 12px 28px; border: none; cursor: pointer;
+  text-transform: uppercase; letter-spacing: 2px;
+  position: relative; color: #fff; transition: all 0.08s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: translate(2px,2px); }
+
+.btn-main {
+  background: var(--neon-pink);
+  box-shadow: inset -4px -4px 0 #a33, inset 4px 4px 0 #f9b, 0 0 24px rgba(255,107,157,0.35);
+  padding: 18px 52px;
+  font-size: clamp(10px, 3vw, 15px);
+  margin-bottom: 18px;
+  animation: btnPulse 2s ease-in-out infinite;
+}
+.btn-main:hover { background: #ff85b3; box-shadow: inset -4px -4px 0 #a33, inset 4px 4px 0 #fbc, 0 0 36px rgba(255,107,157,0.55); }
+@keyframes btnPulse {
+  0%,100% { box-shadow: inset -4px -4px 0 #a33, inset 4px 4px 0 #f9b, 0 0 24px rgba(255,107,157,0.35); }
+  50% { box-shadow: inset -4px -4px 0 #a33, inset 4px 4px 0 #f9b, 0 0 40px rgba(255,107,157,0.55); }
+}
+.btn-main:disabled { opacity: 0.6; pointer-events: none; }
+
+.btn-group { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: 100%; }
+.btn-yes {
+  background: var(--neon-green); color: #111;
+  box-shadow: inset -4px -4px 0 #388, inset 4px 4px 0 #afa;
+}
+.btn-yes:hover { background: #8fffc4; }
+.btn-no {
+  background: #555;
+  box-shadow: inset -4px -4px 0 #333, inset 4px 4px 0 #777;
+}
+.btn-no:hover { background: #666; }
+
+/* Pixel divider */
+.px-div {
+  width: 100%; height: 4px;
+  background: repeating-linear-gradient(90deg, var(--neon-purple) 0px, var(--neon-purple) 4px, transparent 4px, transparent 8px);
+  margin: 24px 0; opacity: 0.5;
+}
+
+/* History */
+.history { width: 100%; margin-top: 28px; }
+.history h3 {
+  font-size: 10px; color: var(--neon-purple); margin-bottom: 14px;
+  text-align: center; text-shadow: 0 0 8px rgba(179,136,255,0.5);
+}
+.history-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.history-item {
+  font-size: 9px; color: var(--neon-yellow); background: #222;
+  border: 2px solid #444; padding: 7px 12px;
+  animation: fadeUp 0.3s ease-out;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Footer */
+.footer { margin-top: 32px; font-size: 9px; color: #444; text-align: center; }
+
+/* Empty state */
+.empty-state { padding: 40px 20px; color: var(--text-dim); font-size: 11px; line-height: 2.5; }
+.empty-state .px-icon { font-size: 52px; margin-bottom: 16px; display: block; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  z-index: 9999; font-size: 11px; color: #111;
+  background: var(--neon-green); padding: 10px 24px;
+  border: 3px solid #388;
+  box-shadow: 0 0 20px rgba(105,240,174,0.5);
+  animation: toastIn 0.3s ease-out, toastOut 0.3s 1.5s ease-out forwards;
+  pointer-events: none;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
+
+/* Loading */
+.loading-text { color: var(--text-dim); font-size: 11px; animation: blink 0.8s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .container { padding: 12px; padding-top: 32px; min-height: auto; }
+  .pixel-box { padding: 18px 12px; }
+  .img-wrap { width: 140px; height: 140px; }
+  .btn-main { padding: 16px 36px; width: 100%; font-size: 12px; }
+  .btn-group { flex-direction: column; }
+  .btn-group .btn { width: 100%; }
+  .drink-card { padding: 14px 8px; }
+  .title { font-size: 16px; }
+}
+
+@media (min-width: 768px) {
+  .img-wrap { width: 220px; height: 220px; }
+}
+
+@media (min-width: 1200px) {
+  .container { max-width: 680px; }
+  .img-wrap { width: 250px; height: 250px; }
+}
+</style>
+</head>
+<body>
+
+<div class="vw-sun"></div>
+<div class="vw-grid"></div>
+<div class="stars" id="stars"></div>
+
+<div class="container">
+
+  <div class="title-wrap">
+    <h1 class="title" data-text="今天喝什么？">今天喝什么？</h1>
+    <p class="subtitle">★ ONTOP BAR ★</p>
+  </div>
+
+  <div class="pixel-box" id="displayBox">
+    <div class="px-corner px-tl"></div>
+    <div class="px-corner px-tr"></div>
+    <div class="px-corner px-bl"></div>
+    <div class="px-corner px-br"></div>
+    <div id="drinkDisplay">
+      <div class="empty-state">
+        <span class="px-icon">🍸</span>
+        <span class="loading-text">加载酒单中...</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-main" id="btnRandom" onclick="startRandomize()" disabled>
+    🎲 随 机 一 杯
+  </button>
+
+  <div class="btn-group" id="btnGroup" style="display:none;">
+    <button class="btn btn-yes" onclick="acceptDrink()">
+      ✓ 就这杯了！
+    </button>
+    <button class="btn btn-no" onclick="startRandomize()">
+      ↻ 再换一杯
+    </button>
+  </div>
+
+  <div class="px-div"></div>
+
+  <div class="history" id="historySection" style="display:none;">
+    <h3>📋 今晚战绩</h3>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <p class="footer">© ONTOP BAR · VAPORWAVE EDITION</p>
+</div>
+
+<script>
+// ===== DATA LOADER =====
+let cocktails = [];
+let currentDrink = null;
+let isRolling = false;
+let rollTimer = null;
+let history = [];
+
+async function loadCocktails() {
+  try {
+    const res = await fetch('/api/cocktails');
+    if (!res.ok) throw new Error('Failed to load');
+    cocktails = await res.json();
+    // Enable button
+    const btn = document.getElementById('btnRandom');
+    btn.disabled = false;
+    btn.textContent = '🎲 随 机 一 杯';
+    // Show ready state
+    document.getElementById('drinkDisplay').innerHTML = `
+      <div class="empty-state">
+        <span class="px-icon">🍸</span>
+        点击下方按钮<br>为你挑选今日之饮
+      </div>
+    `;
+  } catch(e) {
+    document.getElementById('drinkDisplay').innerHTML = `
+      <div class="empty-state">
+        <span class="px-icon">⚠</span>
+        酒单加载失败<br>请检查网络连接
+      </div>
+    `;
+  }
+}
+
+// ===== RENDER =====
+function renderDrink(drink) {
+  const display = document.getElementById('drinkDisplay');
+  const catClass = drink.cat === '特调' ? 'cat-special' : 'cat-classic';
+
+  let imgHTML = '';
+  if (drink.hasImg && drink.img) {
+    imgHTML = `<img src="/static/${drink.img}" alt="${drink.name}"
+      style="max-width:100%;max-height:100%;object-fit:contain;"
+      onerror="this.style.display='none';">`;
+  }
+
+  // Collect all meta tags
+  const tags = [];
+  if (drink.price) tags.push(drink.price);
+  if (drink.abv) tags.push(drink.abv);
+  if (drink.glass) tags.push(drink.glass);
+  if (drink.method) tags.push(drink.method);
+  if (drink.note) tags.push(drink.note);
+
+  display.innerHTML = `
+    <div class="drink-card">
+      <div class="cat-badge ${catClass}">${drink.cat}</div>
+      ${imgHTML ? `<div class="img-wrap">${imgHTML}</div>` : ''}
+      <div class="drink-name">${drink.name}</div>
+      ${drink.en ? `<div class="drink-en">${drink.en}</div>` : ''}
+      <div class="drink-meta">
+        ${tags.map(t => `<span class="tag">${t}</span>`).join('')}
+      </div>
+      ${drink.flavor ? `<div class="drink-flavor">${drink.flavor}</div>` : ''}
+      ${drink.desc ? `<div class="drink-desc">${drink.desc}</div>` : ''}
+    </div>
+  `;
+
+  document.getElementById('btnGroup').style.display = 'flex';
+}
+
+// ===== RANDOMIZE =====
+function getRandom() {
+  return cocktails[Math.floor(Math.random() * cocktails.length)];
+}
+
+function startRandomize() {
+  if (isRolling || cocktails.length === 0) return;
+  isRolling = true;
+
+  const display = document.getElementById('drinkDisplay');
+  const btn = document.getElementById('btnRandom');
+  btn.textContent = '🎰 抽选中...';
+  btn.disabled = true;
+
+  let count = 0;
+  const total = 14;
+  rollTimer = setInterval(() => {
+    const d = getRandom();
+    display.innerHTML = `
+      <div class="drink-card rolling">
+        <div class="rolling-name">${d.name}</div>
+        ${d.en ? `<div class="drink-en" style="margin-top:8px;">${d.en}</div>` : ''}
+        <div class="drink-meta" style="margin-top:10px;"><span class="tag">${d.price}</span></div>
+      </div>
+    `;
+    count++;
+    if (count >= total) {
+      clearInterval(rollTimer);
+      currentDrink = getRandom();
+      renderDrink(currentDrink);
+      btn.textContent = '🎲 随 机 一 杯';
+      btn.disabled = false;
+      isRolling = false;
+
+      playBeep();
+    }
+  }, 75);
+}
+
+// ===== ACCEPT =====
+function acceptDrink() {
+  if (!currentDrink) return;
+
+  history.unshift({
+    name: currentDrink.name,
+    en: currentDrink.en || '',
+    time: new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})
+  });
+  if (history.length > 24) history.pop();
+  try { localStorage.setItem('ontop_history', JSON.stringify(history)); } catch(e) {}
+
+  renderHistory();
+
+  // Flash green
+  const card = document.querySelector('.drink-card');
+  if (card) {
+    card.style.boxShadow = '0 0 50px rgba(105,240,174,0.7), 0 0 0 4px #69f0ae';
+    card.style.transition = 'box-shadow 0.3s ease';
+    setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+  }
+
+  document.getElementById('btnGroup').style.display = 'none';
+  document.getElementById('btnRandom').textContent = '🍸 再来一轮';
+
+  showToast(`已选: ${currentDrink.name}  ✓`);
+}
+
+function renderHistory() {
+  const section = document.getElementById('historySection');
+  const list = document.getElementById('historyList');
+  if (history.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  list.innerHTML = history.map((h,i) => `
+    <div class="history-item">${i===0?'🆕 ':''}${h.name}${h.en?' / '+h.en:''} &nbsp;${h.time}</div>
+  `).join('');
+}
+
+// ===== TOAST =====
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+
+// ===== BEEP (8-bit) =====
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.12);
+    osc.frequency.setValueAtTime(660, ctx.currentTime + 0.14);
+    osc.frequency.linearRampToValueAtTime(330, ctx.currentTime + 0.25);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.28);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.28);
+  } catch(e) {}
+}
+
+// ===== STARS =====
+function createStars() {
+  const c = document.getElementById('stars');
+  for (let i=0; i<120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random()*2.5+1;
+    const top = Math.random()*70;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${top}%;--d:${Math.random()*3+2}s;--dl:${Math.random()*3}s;`;
+    c.appendChild(s);
+  }
+}
+
+// ===== INIT =====
+function init() {
+  createStars();
+  try {
+    const saved = localStorage.getItem('ontop_history');
+    if (saved) history = JSON.parse(saved);
+    renderHistory();
+  } catch(e) {}
+  loadCocktails();
+}
+init();
+</script>
+</body>
+</html>
