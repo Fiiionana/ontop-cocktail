@@ -296,31 +296,6 @@ textarea { resize: vertical; min-height: 50px; }
           <label>风味描述</label>
           <input type="text" id="fFlavor">
         </div>
-        <div id="fgGlass">
-          <label>杯具</label>
-          <input type="text" id="fGlass">
-        </div>
-        <div id="fgMethod">
-          <label>制作方法</label>
-          <input type="text" id="fMethod">
-        </div>
-        <div id="fgGlassType">
-          <label>杯型（像素风）</label>
-          <select id="fGlassType">
-            <option value="">—</option>
-            <option value="martini">Martini</option>
-            <option value="highball">Highball</option>
-            <option value="rocks">Rocks</option>
-            <option value="coupe">Coupe</option>
-            <option value="margarita">Margarita</option>
-            <option value="hurricane">Hurricane</option>
-            <option value="brandySnifter">Brandy Snifter</option>
-          </select>
-        </div>
-        <div id="fgColor">
-          <label>液体颜色</label>
-          <input type="color" id="fColor" style="height:38px;padding:2px;">
-        </div>
         <div id="fgNote">
           <label>备注</label>
           <input type="text" id="fNote">
@@ -409,8 +384,6 @@ function onCatChange() {
   document.getElementById('fgFlavor').style.display = isSpecial ? '' : 'none';
   document.getElementById('fgGlass').style.display = isSpecial ? '' : 'none';
   document.getElementById('fgMethod').style.display = isSpecial ? '' : 'none';
-  document.getElementById('fgGlassType').style.display = isPure ? 'none' : '';
-  document.getElementById('fgColor').style.display = isPure ? 'none' : '';
   document.getElementById('fgNote').style.display = isPure ? '' : 'none';
 }
 
@@ -431,10 +404,6 @@ function openEdit(id) {
   document.getElementById('fAbv').value = d.abv || '';
   document.getElementById('fDesc').value = d.desc || '';
   document.getElementById('fFlavor').value = d.flavor || '';
-  document.getElementById('fGlass').value = d.glass || '';
-  document.getElementById('fMethod').value = d.method || '';
-  document.getElementById('fGlassType').value = d.glassType || '';
-  document.getElementById('fColor').value = d.color || '#c8e6c9';
   document.getElementById('fNote').value = d.note || '';
 
   onCatChange();
@@ -462,10 +431,6 @@ function openCreate() {
   document.getElementById('fAbv').value = '';
   document.getElementById('fDesc').value = '';
   document.getElementById('fFlavor').value = '';
-  document.getElementById('fGlass').value = '';
-  document.getElementById('fMethod').value = '';
-  document.getElementById('fGlassType').value = '';
-  document.getElementById('fColor').value = '#c8e6c9';
   document.getElementById('fNote').value = '';
 
   document.getElementById('imgPreview').style.display = 'none';
@@ -488,10 +453,6 @@ async function saveDrink(e) {
   data.abv = document.getElementById('fAbv').value.trim();
   data.desc = document.getElementById('fDesc').value.trim();
   data.flavor = document.getElementById('fFlavor').value.trim();
-  data.glass = document.getElementById('fGlass').value.trim();
-  data.method = document.getElementById('fMethod').value.trim();
-  data.glassType = document.getElementById('fGlassType').value;
-  data.color = document.getElementById('fColor').value;
   data.note = document.getElementById('fNote').value.trim();
 
   let result;

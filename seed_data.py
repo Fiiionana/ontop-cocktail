@@ -14,25 +14,6 @@ SPIRIT_MAP = {
     '白兰地': 'brandy', '朗姆': 'rum', '龙舌兰': 'tequila', '其他': 'other',
 }
 
-# ---- glassType by name keyword ----
-def infer_glass_type(glass_name):
-    name = glass_name.lower()
-    if '马天尼' in name: return 'martini'
-    if 'colin' in name: return 'highball'
-    if '香槟' in name: return 'coupe'
-    if '威士忌' in name: return 'rocks'
-    if '勃艮第' in name: return 'brandySnifter'
-    if '郁金香' in name: return 'coupe'
-    if '玛格丽特' in name: return 'margarita'
-    if '飓风' in name: return 'hurricane'
-    return 'highball'
-
-# ---- color by spirit ----
-SPIRIT_COLORS = {
-    'gin': '#c8e6c9', 'whisky': '#ffcc80', 'vodka': '#e0e0e0',
-    'rum': '#ffe0b2', 'brandy': '#d4a574', 'tequila': '#c8e6c9', 'other': '#f8bbd0',
-}
-
 # ---- guess spirit from ingredient text ----
 def guess_spirit(desc):
     d = desc or ''
@@ -95,47 +76,23 @@ def parse_specials(ws):
                 'id': '', 'name': name, 'en': en, 'price': price or '¥96',
                 'abv': abv + '%' if abv and not abv.endswith('%') else (abv or '??%'),
                 'cat': '特调', 'desc': desc, 'flavor': flavor,
-                'glass': '', 'method': '',
-                'spirit': spirit, 'color': SPIRIT_COLORS.get(spirit, '#f8bbd0'),
-                'glassType': 'highball', 'img': '', 'hasImg': False,
+                'spirit': spirit, 'img': '', 'hasImg': False,
             }
     if current:
         drinks.append(current)
 
-    # assign IDs and glass/method from parsed data
     id_map = {
         '藤井树': 'fjs', '澪': 'mio', '记念': 'jinian', '休假2.0': 'xj2',
         '阿基拉': 'akira', 'AKIRA': 'akira', '毒藤': 'dt', 'R-16玛丽': 'r16',
         '哥伦布斯': 'glbs', '潮红': 'ch', '地平线': 'dpx', '兰纳': 'ln', '芫荽': 'ys',
     }
-    # Fix AKIRA name
     for d in drinks:
         if d['name'] == 'AKIRA':
             d['name'] = '阿基拉'
             d['en'] = 'AKIRA'
-    # glass and method from original HTML
-    glass_method_map = {
-        '藤井树': ('矮脚香槟杯', '奶洗', 'coupe'),
-        '澪': ('colin杯', 'Shake', 'highball'),
-        '记念': ('colin杯', 'shake', 'highball'),
-        '休假2.0': ('colin杯', 'shake', 'highball'),
-        '阿基拉': ('郁金香杯', 'Shake', 'coupe'),
-        '毒藤': ('毒藤杯', 'Shake', 'highball'),
-        'R-16玛丽': ('条纹威士忌杯', 'Rolling', 'rocks'),
-        '哥伦布斯': ('高脚马天尼杯', 'Shake', 'martini'),
-        '潮红': ('矮脚香槟杯', 'Shake', 'coupe'),
-        '地平线': ('小威士忌杯', 'Shake', 'rocks'),
-        '兰纳': ('大勃艮第杯', 'Shake', 'brandySnifter'),
-        '芫荽': ('akira的杯子', 'Shake', 'highball'),
-    }
 
     for d in drinks:
         d['id'] = id_map.get(d['name'], 's' + str(drinks.index(d)))
-        if d['name'] in glass_method_map:
-            g, m, gt = glass_method_map[d['name']]
-            d['glass'] = g
-            d['method'] = m
-            d['glassType'] = gt
         img = find_image(d['name'])
         if img:
             d['img'] = img
@@ -169,28 +126,10 @@ def parse_classics(ws):
         price_raw = str(row[4]).strip() if row[4] is not None else ''
         price = '¥' + price_raw if price_raw and not price_raw.startswith('¥') else (price_raw or '¥96')
 
-        # glassType defaults
-        glass_defaults = {
-            '金汤力': 'highball', '飞行': 'martini', '金菲士': 'highball', '琴蕾': 'martini',
-            '三叶草俱乐部': 'coupe', '尼格罗尼': 'rocks', '马天尼': 'martini', '遗言': 'coupe',
-            '纸飞机': 'coupe', '威士忌酸': 'rocks', '古典': 'rocks', '曼哈顿': 'coupe',
-            '教父': 'rocks', '老广场': 'rocks',
-            '莫斯科骡子': 'highball', '性感沙滩': 'highball', '神风敢死队': 'martini',
-            '黑/白俄罗斯': 'rocks', '血腥玛丽': 'highball', '大都会': 'martini',
-            '马颈': 'highball', '边车': 'coupe', '床笫之间': 'coupe', 'B&B': 'brandySnifter',
-            '萨泽拉克': 'rocks',
-            '大吉利': 'coupe', '莫吉托': 'highball', '椰林飘香': 'hurricane',
-            '龙舌兰日出': 'highball', '大魔鬼': 'highball', '玛格丽特': 'margarita',
-            '长岛冰茶': 'highball', '青蚱蜢': 'coupe', '杏仁酸': 'rocks',
-            '皮斯科酸': 'coupe', '查理卓别林': 'coupe',
-        }
-
         d = {
             'id': '', 'name': name, 'en': en, 'price': price,
             'abv': abv, 'cat': '经典', 'desc': desc, 'flavor': '',
-            'glass': '', 'method': '',
-            'spirit': current_spirit, 'color': SPIRIT_COLORS.get(current_spirit, '#f8bbd0'),
-            'glassType': glass_defaults.get(name, 'highball'),
+            'spirit': current_spirit,
             'img': '', 'hasImg': False,
         }
         img = find_image(name)
@@ -256,7 +195,7 @@ def parse_pure(ws):
             'name': name, 'en': en, 'cat': '纯饮',
             'price': price or '¥86', 'abv': abv or '40%',
             'desc': drink_type, 'flavor': '', 'glass': '', 'method': '',
-            'spirit': 'other', 'color': '', 'glassType': '',
+            'spirit': 'other',
             'img': '', 'hasImg': False, 'note': note,
         }
         img = find_image(name)

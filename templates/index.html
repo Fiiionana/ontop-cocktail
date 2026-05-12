@@ -273,15 +273,26 @@ body::after {
 /* History */
 .history { width: 100%; margin-top: 28px; }
 .history h3 {
-  font-size: 10px; color: var(--neon-purple); margin-bottom: 14px;
+  font-size: 10px; color: var(--neon-purple); margin-bottom: 6px;
   text-align: center; text-shadow: 0 0 8px rgba(179,136,255,0.5);
+}
+.history-date {
+  font-size: 8px; color: var(--text-dim); text-align: center; margin-bottom: 14px;
 }
 .history-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .history-item {
   font-size: 9px; color: var(--neon-yellow); background: #222;
   border: 2px solid #444; padding: 7px 12px;
   animation: fadeUp 0.3s ease-out;
+  position: relative; cursor: pointer;
+  transition: all 0.15s;
 }
+.history-item:hover { border-color: var(--danger); }
+.history-item .del-x {
+  font-size: 14px; color: var(--danger); margin-left: 6px;
+  opacity: 0; transition: opacity 0.15s; vertical-align: middle;
+}
+.history-item:hover .del-x { opacity: 1; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -376,6 +387,7 @@ body::after {
 
   <div class="history" id="historySection" style="display:none;">
     <h3>📋 今晚战绩</h3>
+    <div class="history-date" id="historyDate"></div>
     <div class="history-list" id="historyList"></div>
   </div>
 
@@ -438,8 +450,6 @@ function renderDrink(drink) {
   const tags = [];
   if (drink.price) tags.push(drink.price);
   if (drink.abv) tags.push(drink.abv);
-  if (drink.glass) tags.push(drink.glass);
-  if (drink.method) tags.push(drink.method);
   if (drink.note) tags.push(drink.note);
 
   display.innerHTML = `
@@ -536,13 +546,29 @@ function acceptDrink() {
   showToast(`已选: ${currentDrink.name}  ✓`);
 }
 
+function deleteHistoryItem(index) {
+  history.splice(index, 1);
+  try { localStorage.setItem('ontop_history', JSON.stringify(history)); } catch(e) {}
+  renderHistory();
+}
+
+function formatDate() {
+  const now = new Date();
+  return `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')}`;
+}
+
 function renderHistory() {
   const section = document.getElementById('historySection');
   const list = document.getElementById('historyList');
+  const dateEl = document.getElementById('historyDate');
   if (history.length === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
+  dateEl.textContent = formatDate();
   list.innerHTML = history.map((h,i) => `
-    <div class="history-item">${i===0?'🆕 ':''}${h.name}${h.en?' / '+h.en:''} &nbsp;${h.time}</div>
+    <div class="history-item" onclick="deleteHistoryItem(${i})">
+      ${i===0?'🆕 ':''}${h.name}${h.en?' / '+h.en:''} &nbsp;${h.time}
+      <span class="del-x">✕</span>
+    </div>
   `).join('');
 }
 
