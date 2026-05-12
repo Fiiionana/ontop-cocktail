@@ -385,6 +385,7 @@ body::after {
 <script>
 // ===== DATA LOADER =====
 let cocktails = [];
+let categoryWeights = { '特调': 3, '经典': 2, '纯饮': 1 };
 let currentDrink = null;
 let isRolling = false;
 let rollTimer = null;
@@ -392,14 +393,19 @@ let history = [];
 
 async function loadCocktails() {
   try {
-    const res = await fetch('/api/cocktails');
-    if (!res.ok) throw new Error('Failed to load');
-    cocktails = await res.json();
-    // Enable button
+    const [cocktailsRes, configRes] = await Promise.all([
+      fetch('/api/cocktails'),
+      fetch('/api/config')
+    ]);
+    if (!cocktailsRes.ok) throw new Error('Failed to load');
+    cocktails = await cocktailsRes.json();
+    if (configRes.ok) {
+      const cfg = await configRes.json();
+      if (cfg.weights) categoryWeights = cfg.weights;
+    }
     const btn = document.getElementById('btnRandom');
     btn.disabled = false;
     btn.textContent = '🎲 随 机 一 杯';
-    // Show ready state
     document.getElementById('drinkDisplay').innerHTML = `
       <div class="empty-state">
         <span class="px-icon">🍸</span>
@@ -455,7 +461,17 @@ function renderDrink(drink) {
 
 // ===== RANDOMIZE =====
 function getRandom() {
-  return cocktails[Math.floor(Math.random() * cocktails.length)];
+  // Weighted by category
+  const cats = Object.keys(categoryWeights);
+  const totalW = cats.reduce((s, c) => s + categoryWeights[c], 0);
+  let r = Math.random() * totalW;
+  let pick = cats[0];
+  for (const cat of cats) {
+    r -= categoryWeights[cat];
+    if (r <= 0) { pick = cat; break; }
+  }
+  const candidates = cocktails.filter(d => d.cat === pick);
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
 function startRandomize() {

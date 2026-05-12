@@ -7,10 +7,12 @@ app = Flask(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, 'data', 'cocktails.json')
+CONFIG_FILE = os.path.join(BASE_DIR, 'data', 'config.json')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
 
 cocktails_data = []
+config = {}
 
 
 def load_data():
@@ -31,6 +33,19 @@ def find_index(drink_id):
         if d['id'] == drink_id:
             return i
     return -1
+
+
+def load_config():
+    global config
+    with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+
+
+def save_config():
+    tmp = CONFIG_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, CONFIG_FILE)
 
 
 def allowed_file(filename):
@@ -138,6 +153,22 @@ def upload(drink_id):
     return jsonify(cocktails_data[idx])
 
 
+# ---- Config API ----
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    return jsonify(config)
+
+
+@app.route('/api/config', methods=['PUT'])
+def update_config():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON'}), 400
+    config.update(data)
+    save_config()
+    return jsonify(config)
+
+
 # ---- Static fallback (for dev) ----
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -147,6 +178,7 @@ def static_files(filename):
 # ---- Init ----
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 load_data()
+load_config()
 print(f'Loaded {len(cocktails_data)} cocktails')
 
 

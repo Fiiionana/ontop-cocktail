@@ -168,6 +168,26 @@ textarea { resize: vertical; min-height: 50px; }
 @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
 @keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(-20px); } }
 
+/* ===== WEIGHT PANEL ===== */
+.weight-panel {
+  background: var(--surface);
+  border: 2px solid var(--neon-purple);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 24px;
+  flex-wrap: wrap;
+}
+.weight-panel h3 {
+  font-family: 'Press Start 2P', monospace; font-size: 9px;
+  color: var(--neon-yellow); white-space: nowrap;
+}
+.weight-row { display: flex; align-items: center; gap: 8px; }
+.weight-row label {
+  font-size: 9px; color: var(--text); margin: 0; white-space: nowrap;
+}
+.weight-row input[type=range] { width: 100px; accent-color: var(--neon-cyan); }
+.weight-row .val { color: var(--neon-cyan); font-size: 11px; min-width: 20px; text-align: center; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 640px) {
   .header { padding: 12px; }
@@ -189,6 +209,13 @@ textarea { resize: vertical; min-height: 50px; }
 </div>
 
 <div class="main">
+  <div class="weight-panel">
+    <h3>🎯 抽中几率</h3>
+    <div id="weightSliders"></div>
+    <button class="btn btn-green btn-sm" onclick="saveWeights()">💾 保存权重</button>
+    <span id="weightMsg" style="font-size:9px;color:var(--neon-green);display:none;">已保存 ✓</span>
+  </div>
+
   <div class="filters">
     <button class="filter-btn active" onclick="setFilter('all')">全部</button>
     <button class="filter-btn" onclick="setFilter('特调')">特调</button>
@@ -536,7 +563,42 @@ function toast(msg, type) {
   setTimeout(() => t.remove(), 2200);
 }
 
+// ===== WEIGHTS =====
+let weights = {};
+
+async function loadWeights() {
+  const res = await fetch('/api/config');
+  if (res.ok) {
+    const cfg = await res.json();
+    weights = cfg.weights || { '特调': 3, '经典': 2, '纯饮': 1 };
+  }
+  renderWeights();
+}
+
+function renderWeights() {
+  const el = document.getElementById('weightSliders');
+  el.innerHTML = Object.keys(weights).map(cat => `
+    <div class="weight-row">
+      <label>${cat}</label>
+      <input type="range" min="1" max="10" value="${weights[cat]}" oninput="this.nextElementSibling.textContent=this.value;weights['${cat}']=+this.value;">
+      <span class="val">${weights[cat]}</span>
+    </div>
+  `).join('');
+}
+
+async function saveWeights() {
+  await fetch('/api/config', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ weights })
+  });
+  const msg = document.getElementById('weightMsg');
+  msg.style.display = '';
+  setTimeout(() => msg.style.display = 'none', 2000);
+}
+
 // ===== INIT =====
+loadWeights();
 loadAll();
 </script>
 </body>
