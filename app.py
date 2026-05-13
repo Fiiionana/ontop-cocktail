@@ -1,6 +1,8 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory
 import json
 import os
+from io import BytesIO
+from PIL import Image
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -50,6 +52,21 @@ def save_config():
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def remove_white_bg(img):
+    """Convert white/near-white pixels to transparent, preserving edges."""
+    img = img.convert("RGBA")
+    pixels = img.load()
+    w, h = img.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pixels[x, y]
+            if r > 240 and g > 240 and b > 240:
+                whiteness = (r + g + b) / 3
+                alpha = max(0, int(255 - (whiteness - 235) * 12))
+                pixels[x, y] = (r, g, b, min(a, alpha))
+    return img
 
 
 # ---- Frontend ----
@@ -139,10 +156,27 @@ def upload(drink_id):
     file = request.files['image']
     if not file.filename or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type'}), 400
+
     ext = file.filename.rsplit('.', 1)[1].lower()
-    filename = secure_filename(f'{drink_id}.{ext}')
+    original_bytes = file.read()
+
+    # Auto-process: JPG/JPEG → remove white bg → save as PNG
+    if ext in ('jpg', 'jpeg'):
+        img = Image.open(BytesIO(original_bytes))
+        img = remove_white_bg(img)
+        save_ext = 'png'
+        out_bytes = BytesIO()
+        img.save(out_bytes, 'PNG')
+        out_bytes.seek(0)
+    else:
+        save_ext = ext
+        out_bytes = BytesIO(original_bytes)
+
+    filename = secure_filename(f'{drink_id}.{save_ext}')
     filepath = os.path.join(UPLOAD_DIR, filename)
-    file.save(filepath)
+    with open(filepath, 'wb') as f:
+        f.write(out_bytes.read())
+
     cocktails_data[idx]['img'] = f'uploads/{filename}'
     cocktails_data[idx]['hasImg'] = True
     save_data()
