@@ -677,6 +677,15 @@ function init() {
     renderHistory();
   } catch(e) {}
   loadCocktails();
+
+  // Reload data when switching back from admin tab
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      fetch('/api/cocktails').then(r => r.json()).then(data => {
+        cocktails = data;
+      }).catch(() => {});
+    }
+  });
 }
 init();
 </script>

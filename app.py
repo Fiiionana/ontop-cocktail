@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, make_response
 import json
 import os
 from io import BytesIO
@@ -54,18 +54,17 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def remove_white_bg(img):
-    """Convert white/near-white pixels to transparent, preserving edges."""
-    img = img.convert("RGBA")
-    pixels = img.load()
+def resize_square(img, size=1080):
+    """Resize image to size×size by cropping the longer side from center."""
     w, h = img.size
-    for y in range(h):
-        for x in range(w):
-            r, g, b, a = pixels[x, y]
-            if r > 240 and g > 240 and b > 240:
-                whiteness = (r + g + b) / 3
-                alpha = max(0, int(255 - (whiteness - 235) * 12))
-                pixels[x, y] = (r, g, b, min(a, alpha))
+    if w == h == size:
+        return img
+    # Crop to square from center
+    side = min(w, h)
+    left = (w - side) // 2
+    top = (h - side) // 2
+    img = img.crop((left, top, left + side, top + side))
+    img = img.resize((size, size), Image.LANCZOS)
     return img
 
 
@@ -84,7 +83,9 @@ def admin():
 # ---- API ----
 @app.route('/api/cocktails', methods=['GET'])
 def get_all():
-    return jsonify(cocktails_data)
+    resp = make_response(jsonify(cocktails_data))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return resp
 
 
 @app.route('/api/cocktails/<drink_id>', methods=['GET'])
@@ -157,25 +158,13 @@ def upload(drink_id):
     if not file.filename or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type'}), 400
 
-    ext = file.filename.rsplit('.', 1)[1].lower()
-    original_bytes = file.read()
+    img = Image.open(BytesIO(file.read()))
+    img = img.convert('RGB')
+    img = resize_square(img, 1080)
 
-    # Auto-process: JPG/JPEG → remove white bg → save as PNG
-    if ext in ('jpg', 'jpeg'):
-        img = Image.open(BytesIO(original_bytes))
-        img = remove_white_bg(img)
-        save_ext = 'png'
-        out_bytes = BytesIO()
-        img.save(out_bytes, 'PNG')
-        out_bytes.seek(0)
-    else:
-        save_ext = ext
-        out_bytes = BytesIO(original_bytes)
-
-    filename = secure_filename(f'{drink_id}.{save_ext}')
+    filename = secure_filename(f'{drink_id}.jpg')
     filepath = os.path.join(UPLOAD_DIR, filename)
-    with open(filepath, 'wb') as f:
-        f.write(out_bytes.read())
+    img.save(filepath, 'JPEG', quality=85)
 
     cocktails_data[idx]['img'] = f'uploads/{filename}'
     cocktails_data[idx]['hasImg'] = True
