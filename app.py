@@ -176,7 +176,9 @@ def upload(drink_id):
 @app.route('/api/sync', methods=['POST'])
 def sync():
     import subprocess
-    # Remove stale lock file if it exists
+    token = os.environ.get('GITHUB_TOKEN', '')
+    if not token:
+        return jsonify({'ok': False, 'msg': '未配置 GITHUB_TOKEN 环境变量'}), 500
     lock_file = os.path.join(BASE_DIR, '.git', 'index.lock')
     if os.path.exists(lock_file):
         os.remove(lock_file)
@@ -184,6 +186,9 @@ def sync():
         subprocess.run(['git', 'add', 'static/web_images/', 'data/cocktails.json', 'data/config.json'],
                        cwd=BASE_DIR, check=True, capture_output=True, text=True)
         subprocess.run(['git', 'commit', '-m', 'Sync: upload images & data from admin'],
+                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        remote_url = f'https://Fiiionana:{token}@github.com/Fiiionana/ontop-cocktail.git'
+        subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url],
                        cwd=BASE_DIR, check=True, capture_output=True, text=True)
         subprocess.run(['git', 'push', 'origin', 'main'],
                        cwd=BASE_DIR, check=True, capture_output=True, text=True, timeout=30)
