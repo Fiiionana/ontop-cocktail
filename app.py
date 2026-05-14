@@ -172,29 +172,74 @@ def upload(drink_id):
     return jsonify(cocktails_data[idx])
 
 
-# ---- Sync (commit & push to GitHub) ----
+# ---- Sync (commit via GitHub API) ----
 @app.route('/api/sync', methods=['POST'])
 def sync():
-    import subprocess
+    import base64
+    import urllib.request
+    import urllib.error
+
     token = os.environ.get('GITHUB_TOKEN', '')
     if not token:
-        return jsonify({'ok': False, 'msg': '未配置 GITHUB_TOKEN 环境变量'}), 500
-    lock_file = os.path.join(BASE_DIR, '.git', 'index.lock')
-    if os.path.exists(lock_file):
-        os.remove(lock_file)
-    try:
-        subprocess.run(['git', 'add', 'static/web_images/', 'data/cocktails.json', 'data/config.json'],
-                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
-        subprocess.run(['git', 'commit', '-m', 'Sync: upload images & data from admin'],
-                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
-        remote_url = f'https://Fiiionana:{token}@github.com/Fiiionana/ontop-cocktail.git'
-        subprocess.run(['git', 'remote', 'set-url', 'origin', remote_url],
-                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
-        subprocess.run(['git', 'push', 'origin', 'main'],
-                       cwd=BASE_DIR, check=True, capture_output=True, text=True, timeout=30)
-        return jsonify({'ok': True, 'msg': '已同步到 GitHub'})
-    except subprocess.CalledProcessError as e:
-        return jsonify({'ok': False, 'msg': e.stderr or str(e)}), 500
+        return jsonify({'ok': False, 'msg': '未配置 GITHUB_TOKEN'}), 500
+
+    REPO = 'Fiiionana/ontop-cocktail'
+    API = f'https://api.github.com/repos/{REPO}/contents'
+    headers = {
+        'Authorization': f'token {token}',
+        'Accept': 'application/vnd.github.v3+json',
+    }
+
+    files_to_sync = [
+        'data/cocktails.json',
+        'data/config.json',
+    ]
+    # Add all images in web_images
+    for fname in os.listdir(WEB_IMAGES_DIR):
+        if not fname.startswith('.'):
+            files_to_sync.append(f'static/web_images/{fname}')
+
+    synced = 0
+    errors = []
+
+    for rel_path in files_to_sync:
+        local_path = os.path.join(BASE_DIR, rel_path)
+        if not os.path.exists(local_path):
+            continue
+        with open(local_path, 'rb') as f:
+            content = f.read()
+        content_b64 = base64.b64encode(content).decode('utf-8')
+
+        # Get remote SHA if file exists
+        sha = None
+        try:
+            req = urllib.request.Request(f'{API}/{rel_path}', headers=headers)
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                sha = json.loads(resp.read()).get('sha')
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                errors.append(f'{rel_path}: HTTP {e.code}')
+                continue
+
+        body = json.dumps({
+            'message': 'Sync: upload from admin',
+            'content': content_b64,
+            'branch': 'main',
+        } | ({'sha': sha} if sha else {}))
+        body_bytes = body.encode('utf-8')
+
+        try:
+            req = urllib.request.Request(f'{API}/{rel_path}', data=body_bytes, headers=headers, method='PUT')
+            urllib.request.urlopen(req, timeout=15)
+            synced += 1
+        except urllib.error.HTTPError as e:
+            errors.append(f'{rel_path}: HTTP {e.code}')
+        except Exception as e:
+            errors.append(f'{rel_path}: {e}')
+
+    if errors:
+        return jsonify({'ok': False, 'msg': f'已同步 {synced} 个文件，{len(errors)} 个失败: {"; ".join(errors[:3])}'})
+    return jsonify({'ok': True, 'msg': f'已同步 {synced} 个文件到 GitHub'})
 
 
 # ---- Config API ----
