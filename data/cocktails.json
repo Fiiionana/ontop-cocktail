@@ -9,8 +9,9 @@
     "desc": "金酒、牛奶、红豆、养乐多",
     "flavor": "红豆养乐多小甜酒",
     "spirit": "gin",
-    "img": "web_images/藤井树.png",
-    "hasImg": true
+    "img": "web_images/fjs.jpg",
+    "hasImg": true,
+    "note": ""
   },
   {
     "id": "mio",
