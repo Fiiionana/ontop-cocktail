@@ -176,6 +176,10 @@ def upload(drink_id):
 @app.route('/api/sync', methods=['POST'])
 def sync():
     import subprocess
+    # Remove stale lock file if it exists
+    lock_file = os.path.join(BASE_DIR, '.git', 'index.lock')
+    if os.path.exists(lock_file):
+        os.remove(lock_file)
     try:
         subprocess.run(['git', 'add', 'static/web_images/', 'data/cocktails.json', 'data/config.json'],
                        cwd=BASE_DIR, check=True, capture_output=True, text=True)
