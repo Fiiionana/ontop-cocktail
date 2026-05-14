@@ -10,7 +10,7 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, 'data', 'cocktails.json')
 CONFIG_FILE = os.path.join(BASE_DIR, 'data', 'config.json')
-UPLOAD_DIR = os.path.join(BASE_DIR, 'static', 'uploads')
+WEB_IMAGES_DIR = os.path.join(BASE_DIR, 'static', 'web_images')
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'webp'}
 
 cocktails_data = []
@@ -163,13 +163,29 @@ def upload(drink_id):
     img = resize_square(img, 1080)
 
     filename = secure_filename(f'{drink_id}.jpg')
-    filepath = os.path.join(UPLOAD_DIR, filename)
+    filepath = os.path.join(WEB_IMAGES_DIR, filename)
     img.save(filepath, 'JPEG', quality=85)
 
-    cocktails_data[idx]['img'] = f'uploads/{filename}'
+    cocktails_data[idx]['img'] = f'web_images/{filename}'
     cocktails_data[idx]['hasImg'] = True
     save_data()
     return jsonify(cocktails_data[idx])
+
+
+# ---- Sync (commit & push to GitHub) ----
+@app.route('/api/sync', methods=['POST'])
+def sync():
+    import subprocess
+    try:
+        subprocess.run(['git', 'add', 'static/web_images/', 'data/cocktails.json', 'data/config.json'],
+                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        subprocess.run(['git', 'commit', '-m', 'Sync: upload images & data from admin'],
+                       cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        subprocess.run(['git', 'push', 'origin', 'main'],
+                       cwd=BASE_DIR, check=True, capture_output=True, text=True, timeout=30)
+        return jsonify({'ok': True, 'msg': '已同步到 GitHub'})
+    except subprocess.CalledProcessError as e:
+        return jsonify({'ok': False, 'msg': e.stderr or str(e)}), 500
 
 
 # ---- Config API ----
@@ -195,7 +211,7 @@ def static_files(filename):
 
 
 # ---- Init ----
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(WEB_IMAGES_DIR, exist_ok=True)
 load_data()
 load_config()
 print(f'Loaded {len(cocktails_data)} cocktails')

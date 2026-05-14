@@ -204,6 +204,7 @@ textarea { resize: vertical; min-height: 50px; }
   <div class="header-actions">
     <button class="btn btn-pri btn-sm" onclick="openCreate()">+ 新增酒款</button>
     <button class="btn btn-ghost btn-sm" onclick="reloadData()">↻ 重新加载</button>
+    <button class="btn btn-green btn-sm" onclick="syncToGitHub(this)">🚀 同步到线上</button>
     <a href="/" class="btn btn-ghost btn-sm" style="text-decoration:none;">👁 前端预览</a>
   </div>
 </div>
@@ -556,6 +557,25 @@ async function saveWeights() {
   const msg = document.getElementById('weightMsg');
   msg.style.display = '';
   setTimeout(() => msg.style.display = 'none', 2000);
+}
+
+// ===== SYNC =====
+async function syncToGitHub(btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ 同步中...';
+  try {
+    const res = await fetch('/api/sync', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      toast('🚀 ' + data.msg);
+    } else {
+      toast('❌ 同步失败: ' + data.msg, 'error');
+    }
+  } catch(e) {
+    toast('❌ 网络错误', 'error');
+  }
+  btn.disabled = false;
+  btn.textContent = '🚀 同步到线上';
 }
 
 // ===== INIT =====
